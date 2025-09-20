@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Downloader versi Zikri</title>
+  <style>
+    body {
+      margin:0; padding:0; font-family:Arial,sans-serif; color:#fff;
+      text-align:center; overflow-x:hidden;
+    }
+    #bg-video {
+      position:fixed; top:0; left:0;
+      width:100vw; height:100vh;
+      object-fit:cover;
+      background:black;
+      z-index:-1;
+      pointer-events:none;
+    }
+    .container {
+      position:relative; z-index:2;
+      background:rgba(0,0,0,0.65); padding:20px; margin:40px auto;
+      border-radius:15px; width:90%; max-width:420px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.5);
+    }
+    h2 { color:yellow; margin-bottom:15px; }
+    input {
+      width:100%; padding:10px; margin-bottom:15px;
+      border:none; border-radius:10px;
+    }
+    button {
+      width:100%; padding:12px; margin:6px 0;
+      border:none; border-radius:10px; font-weight:bold;
+      cursor:pointer; font-size:15px;
+    }
+    .download-btn {background:linear-gradient(to right,#ff0080,#7928ca);color:#fff;}
+    .foto-btn {background:linear-gradient(to right,#00c6ff,#0072ff);color:#fff;}
+    .musik-btn {background:linear-gradient(to right,#ff512f,#dd2476);color:#fff;}
+    .toggle-btn {background:#28a745;color:#fff;}
+    #preview {
+      margin-top:20px;
+      background:rgba(255,255,255,0.1);
+      border-radius:10px; padding:10px; display:none;
+      transition:opacity 0.4s ease;
+    }
+    #preview img {
+      max-width:100%; border-radius:10px; margin-bottom:10px;
+    }
+    #title { font-weight:bold; margin-bottom:5px; color:#ffd700; }
+    #music { font-size:14px; color:#a0e6ff; }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop id="bg-video">
+    <source src="https://files.catbox.moe/a6ohhv.mp4" type="video/mp4">
+  </video>
+
+  <div class="container">
+    <h2>Downloader versi Zikri</h2>
+    <input type="text" id="link" placeholder="Tempel tautan TikTok di sini" oninput="updatePreview()">
+    
+    <div id="preview">
+      <img id="thumbnail" src="" alt="Thumbnail">
+      <div id="title"></div>
+      <div id="music"></div>
+    </div>
+
+    <button class="download-btn" onclick="downloadVideo()">Download Video</button>
+    <button class="foto-btn" onclick="downloadFotoHD()">Unduh Foto dengan HD</button>
+    <button class="musik-btn" onclick="downloadMusik()">Download Musik</button>
+    <button class="toggle-btn" onclick="toggleSuara()">ON / OFF Suara</button>
+  </div>
+
+  <script>
+    const bgVideo = document.getElementById("bg-video");
+    let previewTimeout;
+
+    async function fetchTikTokData(url){
+      if(!url){return null;}
+      try{
+        const res = await fetch("https://www.tikwm.com/api/?url="+encodeURIComponent(url));
+        const data = await res.json();
+        if(data.code===0) return data.data;
+        else return null;
+      }catch(e){return null;}
+    }
+
+    async function updatePreview(){
+      const url=document.getElementById("link").value.trim();
+      const preview=document.getElementById("preview");
+      if(!url){preview.style.display="none";return;}
+      
+      clearTimeout(previewTimeout);
+      previewTimeout=setTimeout(async()=>{
+        const data=await fetchTikTokData(url);
+        if(data){
+          document.getElementById("thumbnail").src=data.cover_hd||data.cover||data.origin_cover;
+          document.getElementById("title").innerText=data.title||"Tanpa judul";
+          document.getElementById("music").innerText=data.music_info?.title
+            ? `🎵 ${data.music_info.title} - ${data.music_info.author}`
+            : "Tidak ada info musik";
+          preview.style.display="block";
+          preview.style.opacity=1;
+        }else{
+          preview.style.display="none";
+        }
+      },500);
+    }
+
+    function triggerDownload(fileUrl, fileName){
+      const a=document.createElement("a");
+      a.href=fileUrl;
+      a.download=fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    async function downloadVideo(){
+      const url=document.getElementById("link").value;
+      const data=await fetchTikTokData(url);
+      if(data) triggerDownload(data.play, (data.title||"tiktok_video")+".mp4");
+      else alert("❌ Gagal mengambil data video!");
+    }
+
+    async function downloadMusik(){
+      const url=document.getElementById("link").value;
+      const data=await fetchTikTokData(url);
+      if(data) triggerDownload(data.music, (data.music_info?.title||"tiktok_music")+".mp3");
+      else alert("❌ Gagal mengambil data musik!");
+    }
+
+    async function downloadFotoHD(){
+      const url=document.getElementById("link").value;
+      const data=await fetchTikTokData(url);
+      if(!data){alert("❌ Tidak bisa mengambil foto!");return;}
+      const imgUrl = data.cover_hd || data.cover || data.origin_cover;
+      triggerDownload(imgUrl,"tiktok_foto_hd.jpg");
+    }
+
+    function toggleSuara(){
+      bgVideo.muted=!bgVideo.muted;
+      alert(bgVideo.muted?"🔇 Suara dimatikan":"🔊 Suara dihidupkan");
+    }
+  </script>
+</body>
+</html>
